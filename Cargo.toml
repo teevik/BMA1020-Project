@@ -7,4 +7,7 @@ edition = "2021"
 
 [dependencies]
 nannou = "0.18"
+nannou_egui = "0.5"
+vek = "0.15"
 itertools = "0.10"
+rayon = "1.7"
