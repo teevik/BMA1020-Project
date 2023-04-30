@@ -10,6 +10,7 @@ use nannou::rand::random_range;
 use nannou::{App, Draw, Frame};
 use nannou_egui::egui::Checkbox;
 use nannou_egui::{self, egui, Egui};
+use rayon::prelude::*;
 use std::f32::consts::PI;
 use vek::{LineSegment2, Vec2};
 
@@ -19,6 +20,7 @@ fn main() {
 
 const ANT_COLLIDER_RADIUS: f32 = 2.;
 const RAY_LENGTH: f32 = 50.;
+const AMOUNT_OF_ANTS: usize = 1000;
 
 #[derive(Clone)]
 struct Ant {
@@ -58,6 +60,7 @@ fn model(app: &App) -> Model {
         // Let egui handle things like keyboard and mouse input.
         model.egui.handle_raw_event(event);
     }
+
     let window_id = app
         .new_window()
         .view(view)
@@ -70,7 +73,7 @@ fn model(app: &App) -> Model {
 
     let boundary = app.window_rect();
 
-    let ants = (0..2000)
+    let ants = (0..AMOUNT_OF_ANTS)
         .map(|id| {
             let position = Vec2::new(
                 random_range(boundary.x.start, boundary.x.end),
@@ -133,9 +136,8 @@ fn update(app: &App, model: &mut Model, update: Update) {
 
     let previous_ants = model.ants.clone();
 
-    // model.ants.par_iter_mut().for_each(|ant| {
-
-    for ant in model.ants.iter_mut() {
+    model.ants.iter_mut().for_each(|ant| {
+        // for ant in model.ants.iter_mut() {
         let steps = 10;
         let cone = (PI / 8.) / steps as f32;
 
@@ -176,7 +178,7 @@ fn update(app: &App, model: &mut Model, update: Update) {
                 target_angle.clamp(-max_rotation, max_rotation) * multiplier * delta_time,
             );
         }
-    }
+    });
 
     for (i, ant) in model.ants.iter_mut().enumerate() {
         ant.direction
