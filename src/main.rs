@@ -4,13 +4,13 @@ use crate::vek_extension::Vec2Extension;
 use itertools::Itertools;
 use nannou::color::{Alpha, Lch};
 use nannou::event::Update;
-use nannou::geom::{pt2, Rect};
+use nannou::geom::{pt2, Range, Rect};
 use nannou::noise::{NoiseFn, Perlin};
+use nannou::prelude::{map_range, Inv};
 use nannou::rand::random_range;
 use nannou::{App, Draw, Frame};
 use nannou_egui::egui::Checkbox;
 use nannou_egui::{self, egui, Egui};
-use rayon::prelude::*;
 use std::f32::consts::PI;
 use vek::{LineSegment2, Vec2};
 
@@ -40,7 +40,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             debug_mode: false,
-            enable_trails: false,
+            enable_trails: true,
             simulation_speed: 1.,
         }
     }
@@ -136,12 +136,33 @@ fn update(app: &App, model: &mut Model, update: Update) {
 
     let previous_ants = model.ants.clone();
 
-    model.ants.iter_mut().for_each(|ant| {
-        // for ant in model.ants.iter_mut() {
+    for (ant_index, ant) in model.ants.iter_mut().enumerate() {
+        // Random rotation by perlin
+        ant.direction
+            .rotate_z(model.perlin.get([app.time as f64, ant_index as f64]) as f32 * delta_time);
+
+        let diff = ant.position - [app.mouse.x, app.mouse.y];
+
+        if diff.magnitude() < 100. {
+            ant.direction += diff.normalized() * 10. - diff.magnitude();
+        }
+
+        // (0. ..= 100.).l
+        // let pog = map_range(diff.magnitude(), 100., 0., 0., 1.);
+
+        // ant.position += diff.normalized() * diff.magnitude_squared().inv() * 100.;
+
+        // Check if out of bounds
+        if !boundary.contains(ant.position.as_glam()) {
+            ant.direction += (-ant.position).normalized() / 10.;
+        }
+
+        ant.direction.normalize();
+
         let steps = 10;
         let cone = (PI / 8.) / steps as f32;
 
-        let check_intersection = |i| {
+        let ray_intersects_other_ant = |i| {
             let start = ant.position;
             let end = ant.position + ant.direction.rotated_z(cone * i as f32) * RAY_LENGTH;
 
@@ -162,13 +183,15 @@ fn update(app: &App, model: &mut Model, update: Update) {
             intersects
         };
 
-        let mut indices = [0]
+        // Check if ant can see another
+        // Iterator that goes [0, -1, 1, -2, 2, ...] to make sure ray prioritizes ant directly in front
+        let mut ray_indices = [0]
             .into_iter()
             .chain((1..=steps).flat_map(|i| [-1, 1].into_iter().map(move |side| i * side)));
 
-        let index = indices.find(|&index| check_intersection(index));
+        let ray_index = ray_indices.find(|&index| ray_intersects_other_ant(index));
 
-        if let Some(index) = index {
+        if let Some(index) = ray_index {
             let target_angle = cone * index as f32;
 
             let max_rotation = 10000.;
@@ -178,28 +201,9 @@ fn update(app: &App, model: &mut Model, update: Update) {
                 target_angle.clamp(-max_rotation, max_rotation) * multiplier * delta_time,
             );
         }
-    });
 
-    for (i, ant) in model.ants.iter_mut().enumerate() {
-        ant.direction
-            .rotate_z(model.perlin.get([app.time as f64, i as f64]) as f32 * delta_time);
-
+        // Update ant position
         ant.position += ant.direction * ant.speed * delta_time;
-
-        if !boundary.contains(ant.position.as_glam()) {
-            ant.direction += (-ant.position).normalized() / 10.;
-            ant.direction.normalize();
-        }
-
-        // if !boundary.x.contains(ant.position.x) {
-        //     ant.direction.x *= -1.;
-        //     ant.position.x = ant.position.x.clamp(boundary.x.start, boundary.x.end);
-        // }
-        //
-        // if !boundary.y.contains(ant.position.y) {
-        //     ant.direction.y *= -1.;
-        //     ant.position.y = ant.position.y.clamp(boundary.y.start, boundary.y.end);
-        // }
     }
 }
 

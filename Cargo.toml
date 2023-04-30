@@ -1,5 +1,5 @@
 [package]
-name = "BMA1020-Project"
+name = "bma1020-project"
 version = "0.1.0"
 edition = "2021"
 

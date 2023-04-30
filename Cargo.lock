@@ -3,17 +3,6 @@
 version = 3
 
 [[package]]
-name = "BMA1020-Project"
-version = "0.1.0"
-dependencies = [
- "itertools",
- "nannou",
- "nannou_egui",
- "rayon",
- "vek",
-]
-
-[[package]]
 name = "ab_glyph"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -250,6 +239,17 @@ dependencies = [
  "fastrand",
  "futures-lite",
  "log",
+]
+
+[[package]]
+name = "bma1020-project"
+version = "0.1.0"
+dependencies = [
+ "itertools",
+ "nannou",
+ "nannou_egui",
+ "rayon",
+ "vek",
 ]
 
 [[package]]
