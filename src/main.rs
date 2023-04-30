@@ -4,7 +4,6 @@ use crate::vek_extension::Vec2Extension;
 use itertools::Itertools;
 use nannou::color::{Alpha, Lch};
 use nannou::event::Update;
-use nannou::geom::pt2;
 use nannou::noise::{NoiseFn, Perlin};
 use nannou::rand::random_range;
 use nannou::{App, Frame};
@@ -19,7 +18,7 @@ const SIMULATION_SPEED: f32 = 1.;
 const ENABLE_TRAILS: bool = true;
 const ANT_COLLIDER_RADIUS: f32 = 2.;
 const RAY_LENGTH: f32 = 50.;
-const AMOUNT_OF_ANTS: usize = 1000;
+const AMOUNT_OF_ANTS: usize = 2000;
 
 #[derive(Clone)]
 struct Ant {
@@ -30,7 +29,10 @@ struct Ant {
 }
 
 struct Model {
+    /// Perlin noise generator
     perlin: Perlin,
+
+    /// All simulated ants
     ants: Vec<Ant>,
 }
 
@@ -47,6 +49,7 @@ fn model(app: &App) -> Model {
 
             let angle = random_range(-PI, PI);
             let direction = Vec2::new(angle.cos(), angle.sin());
+
             let speed = random_range(20., 100.);
 
             Ant {
@@ -72,24 +75,6 @@ fn update(app: &App, model: &mut Model, update: Update) {
     let previous_ants = model.ants.clone();
 
     for (ant_index, ant) in model.ants.iter_mut().enumerate() {
-        // Random rotation by perlin
-        ant.direction
-            .rotate_z(model.perlin.get([app.time as f64, ant_index as f64]) as f32 * delta_time);
-
-        // Avoid mouse
-        let diff = ant.position - [app.mouse.x, app.mouse.y];
-
-        if diff.magnitude() < 100. {
-            ant.direction += diff.normalized() * 5. * diff.magnitude();
-            ant.direction.normalize();
-        }
-
-        // Check if out of bounds
-        if !boundary.contains(ant.position.to_glam()) {
-            ant.direction += (-ant.position).normalized() / 10.;
-            ant.direction.normalize();
-        }
-
         // Scan for ants
         let steps = 10;
         let cone = (PI / 8.) / steps as f32;
@@ -129,6 +114,24 @@ fn update(app: &App, model: &mut Model, update: Update) {
             ant.direction.rotate_z(
                 (target_angle * multiplier).clamp(-max_rotation, max_rotation) * delta_time,
             );
+        }
+
+        // Random rotation by perlin
+        ant.direction
+            .rotate_z(model.perlin.get([app.time as f64, ant_index as f64]) as f32 * delta_time);
+
+        // Avoid mouse
+        let diff = ant.position - [app.mouse.x, app.mouse.y];
+
+        if diff.magnitude() < 100. {
+            ant.direction += diff.normalized() * 0.1 * (100. - diff.magnitude()) * delta_time;
+            ant.direction.normalize();
+        }
+
+        // Check if out of bounds
+        if !boundary.contains(ant.position.to_glam()) {
+            ant.direction += (-ant.position).normalized() / 10.;
+            ant.direction.normalize();
         }
 
         // Update ant position

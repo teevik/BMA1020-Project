@@ -1,6 +1,9 @@
+/// Helpers for vek's Vec2
 pub trait Vec2Extension {
+    /// Convert vek::Vec2 into glam::Vec2
     fn to_glam(self) -> nannou::glam::Vec2;
 
+    /// Find angle of vector
     fn angle(self) -> f32;
 }
 
